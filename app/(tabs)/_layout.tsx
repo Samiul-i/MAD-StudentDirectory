@@ -1,5 +1,6 @@
 // app/(tabs)/_layout.tsx
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
@@ -23,6 +24,16 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+        }}
+      />
+      {/* Week 6 — Statistics tab */}
+      <Tabs.Screen
+        name="statistics"
+        options={{
+          title: 'Stats',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="bar-chart-outline" size={28} color={color} />
+          ),
         }}
       />
       <Tabs.Screen

@@ -1,13 +1,26 @@
-// app/(tabs)/index.tsx — refactored with context + lab task features
+// app/(tabs)/index.tsx — Week 6: useDebounce + useMemo + useCallback + useRef
 
 import { router } from "expo-router";
-import { useState } from "react";
-import { Alert, FlatList, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    Alert,
+    FlatList,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import SearchBar from "../../components/search-bar";
 import StudentDetail from "../../components/student-detail";
 import StudentItem from "../../components/student-item";
 import { useStudents } from "../../context/students-context";
 import { Student } from "../../data/students";
+import { useDebounce } from "../../hooks/use-debounce";
+
+// Feature 2 — the search debounce delay, configurable in one place.
+const DEBOUNCE_DELAY = 300;
 
 export default function Index() {
   // Read students directly from the global context
@@ -17,17 +30,34 @@ export default function Index() {
   const [query, setQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const filtered = students.filter(
-    (s) =>
-      s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.department.toLowerCase().includes(query.toLowerCase())
-  );
+  // Debounce the query — the filter only runs DEBOUNCE_DELAY ms after typing stops.
+  const debouncedQuery = useDebounce(query, DEBOUNCE_DELAY);
 
-  const handleSelect = (student: Student) => {
-    setSelectedStudent((prev) =>
-      prev?.id === student.id ? null : student
+  // Ref to the search input — used to auto-focus it on mount (no re-render).
+  const searchRef = useRef<TextInput>(null);
+
+  // Focus the search bar 300ms after mount (lets the tab slide-in animation finish).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchRef.current?.focus();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []); // [] — run once on mount only
+
+  // Only recomputes when `students` or `debouncedQuery` change.
+  // Tapping a student (setSelectedStudent) does NOT re-run this.
+  const filtered = useMemo(() => {
+    return students.filter(
+      (s) =>
+        s.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+        s.department.toLowerCase().includes(debouncedQuery.toLowerCase())
     );
-  };
+  }, [students, debouncedQuery]);
+
+  // Stable handler reference — setSelectedStudent is stable, so [] is correct.
+  const handleSelect = useCallback((student: Student) => {
+    setSelectedStudent((prev) => (prev?.id === student.id ? null : student));
+  }, []);
 
   // Lab Task Feature 1 — Reset button with confirmation dialog
   const handleReset = () => {
@@ -70,7 +100,12 @@ export default function Index() {
         </View>
       </View>
 
-      <SearchBar value={query} onChangeText={setQuery} />
+      <SearchBar
+        ref={searchRef}
+        value={query}
+        onChangeText={setQuery}
+        debounceDelay={DEBOUNCE_DELAY}
+      />
 
       <FlatList
         data={filtered}
@@ -89,9 +124,7 @@ export default function Index() {
         }
       />
 
-      {selectedStudent && (
-        <StudentDetail student={selectedStudent} />
-      )}
+      {selectedStudent && <StudentDetail student={selectedStudent} />}
     </SafeAreaView>
   );
 }
