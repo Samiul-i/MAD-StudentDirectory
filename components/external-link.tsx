@@ -27,7 +27,4 @@ export function ExternalLink({ href, ...rest }: Props) {
       }}
     />
   );
-
-  //fatin
-  
 }
